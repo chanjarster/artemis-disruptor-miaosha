@@ -51,16 +51,13 @@ CREATE TABLE ITEM (
   NAME   VARCHAR2(500),
   AMOUNT NUMBER(19) DEFAULT 0 NOT NULL
 );
-CREATE SEQUENCE SEQ_ITEM;
+
 CREATE TABLE ITEM_ORDER (
   ID      NUMBER(19) PRIMARY KEY,
   ITEM_ID NUMBER(19) REFERENCES ITEM (ID) NOT NULL,
   USER_ID VARCHAR(500)
 );
 CREATE SEQUENCE SEQ_ITEM_ORDER CACHE 1000;
-
-insert into ITEM(ID, NAME, AMOUNT) VALUES (1, '商品01', 300000);
-commit;
 ```
 
 ### 配置Artemis
@@ -135,13 +132,22 @@ JAVA_ARGS="-XX:+UseParallelGC -XX:+AggressiveOpts -XX:+UseFastAccessorMethods -X
 
   <Service name="Catalina">
 
-    <Connector port="8080" protocol="HTTP/1.1"
+    <Connector port="8080" protocol="org.apache.coyote.http11.Http11Nio2Protocol"
       URIEncoding="UTF-8"
       enableLookups="false"
-      acceptCount="100"
-      maxThreads="1000"
-      minSpareThreads="200"
-      connectionTimeout="15000"      
+
+      maxThreads="1500"
+      minSpareThreads="1500"
+      processorCache="1500"
+
+      acceptorThreadCount="1"
+      acceptCount="1000"
+      maxConnections="20000"
+
+      connectionTimeout="15000"  
+      socket.directBuffer="true"
+      socket.bufferPool="-1"
+      socket.processorCache="-1"    
     />
 
     <Engine name="Catalina" defaultHost="localhost">
@@ -153,10 +159,12 @@ JAVA_ARGS="-XX:+UseParallelGC -XX:+AggressiveOpts -XX:+UseFastAccessorMethods -X
 </Server>
 ```
 
+上面关于各个参数的说明见[这里](http://tomcat.apache.org/tomcat-8.5-doc/config/http.html)
+
 新建``${TOMCAT_HOME}/bin/setenv.sh``文件，内容如下：
 
 ```bash
-CATALINA_OPTS="-server -Xmx2G -Xms2G"
+CATALINA_OPTS="-server -Xmx3G -Xms3G -XX:MaxDirectMemorySize=256m"
 ```
 
 ## 启动
@@ -199,7 +207,7 @@ java -jar -server -Xms2g -Xmx2g \
 
 PS. 秒杀后端只能部署有一个节点，因为商品的库存数据都在内存，而这些数据是不跨jvm共享的。
 
-## 访问
+## 测试
 
 下单：
 
@@ -225,7 +233,13 @@ curl -X GET 'http://localhost:8080/miaosha/order-result?requestId=325e5ef0-322a-
 {"id":"dc6abcb6-3229-11e7-9067-b20ed8864300","requestId":"325e5ef0-322a-11e7-a867-b20ed8864300","errorMessage":null,"success":true}
 ```
 
-## 利用Jmeter benchmark
+## benchmark
+
+先执行以下sql添加商品数据
+
+```sql
+insert into ITEM(ID, NAME, AMOUNT) VALUES (1, '商品01', 300000);
+```
 
 到[这里](http://jmeter.apache.org/download_jmeter.cgi)下载Jmeter 3.x版本。
 
@@ -233,6 +247,9 @@ curl -X GET 'http://localhost:8080/miaosha/order-result?requestId=325e5ef0-322a-
 
 1. 修改**Thread Group**里的用户数到你期望的数值
 2. 修改**Aggregate Graph**里的结果保存路径
+3. 修改**View Results Tree**里的结果保存路径
+4. 修改**Response Time Graph**里的结果保存路径
+4. 修改**Graph Results**里的结果保存路径
 
 关闭jmeter，利用以下命令使用jmeter的Non-GUI模式跑测试：
 
@@ -240,3 +257,11 @@ curl -X GET 'http://localhost:8080/miaosha/order-result?requestId=325e5ef0-322a-
 JVM_ARGS="-Xms1g -Xmx1g" ${JMETER_HOME}/bin/jmeter.sh -n -t jmeter/benchmark.jmx的绝对路径
 ```
 
+测试完毕后，用jmeter打开``jmeter/benchmark.jmx``文件，分别到
+
+* **Aggregate Graph**
+* **View Results Tree**
+* **Response Time Graph**
+* **Graph Results**
+
+里加载结果文件，查看结果
