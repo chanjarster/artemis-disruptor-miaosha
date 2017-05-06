@@ -21,6 +21,7 @@ import me.chanjar.jms.base.utils.BeanRegisterUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.annotation.Bean;
@@ -105,13 +106,13 @@ public class JmsServerConfiguration implements ApplicationContextAware {
   }
 
   @Bean
-  public JmsMessageSender responseMessageSender() throws JMSException {
+  public JmsMessageSender responseMessageSender(@Value("${jms-sender.ring-buffer-size}")int ringBufferSize) throws JMSException {
 
     DisruptorJmsMessageSender disruptorJmsMessageSender = DisruptorJmsMessageSenderFactory.create(
         responseSession(),
         responseMessageProducer(),
         new ArtemisMessageDtoDupMessageDetectStrategy(),
-        1 << 13 // 8192
+        ringBufferSize
     );
 
     Disruptor disruptor = disruptorJmsMessageSender.getDisruptor();
