@@ -1,7 +1,7 @@
 package me.chanjar.jms.server.config;
 
 import com.lmax.disruptor.dsl.Disruptor;
-import me.chanjar.jms.server.DisruptorLifeCycleContainer;
+import me.chanjar.jms.base.lifecycle.DisruptorLifeCycleContainer;
 import me.chanjar.jms.server.StartupOrderConstants;
 import me.chanjar.jms.server.command.infras.CommandDispatcher;
 import me.chanjar.jms.server.command.infras.disruptor.*;
@@ -9,7 +9,7 @@ import me.chanjar.jms.server.command.item.ItemAmountUpdateCommand;
 import me.chanjar.jms.server.command.item.ItemAmountUpdateCommandBuffer;
 import me.chanjar.jms.server.command.item.ItemAmountUpdateCommandExecutor;
 import me.chanjar.jms.server.command.item.ItemAmountUpdateCommandProcessor;
-import me.chanjar.jms.server.utils.BeanRegisterUtils;
+import me.chanjar.jms.base.utils.BeanRegisterUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -20,7 +20,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import javax.sql.DataSource;
 import java.util.concurrent.Executors;
 
 @Configuration

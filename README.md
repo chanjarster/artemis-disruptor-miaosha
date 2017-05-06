@@ -59,15 +59,7 @@ CREATE TABLE ITEM_ORDER (
 );
 CREATE SEQUENCE SEQ_ITEM_ORDER CACHE 1000;
 
-insert into ITEM(ID, NAME, AMOUNT) VALUES (SEQ_ITEM.nextval, '商品01', 100);
-insert into ITEM(ID, NAME, AMOUNT) VALUES (SEQ_ITEM.nextval, '商品02', 100);
-insert into ITEM(ID, NAME, AMOUNT) VALUES (SEQ_ITEM.nextval, '商品03', 100);
-insert into ITEM(ID, NAME, AMOUNT) VALUES (SEQ_ITEM.nextval, '商品04', 100);
-insert into ITEM(ID, NAME, AMOUNT) VALUES (SEQ_ITEM.nextval, '商品05', 100);
-insert into ITEM(ID, NAME, AMOUNT) VALUES (SEQ_ITEM.nextval, '商品06', 100);
-insert into ITEM(ID, NAME, AMOUNT) VALUES (SEQ_ITEM.nextval, '商品07', 100);
-insert into ITEM(ID, NAME, AMOUNT) VALUES (SEQ_ITEM.nextval, '商品08', 100);
-insert into ITEM(ID, NAME, AMOUNT) VALUES (SEQ_ITEM.nextval, '商品09', 100);
+insert into ITEM(ID, NAME, AMOUNT) VALUES (1, '商品01', 300000);
 commit;
 ```
 
@@ -121,10 +113,10 @@ ${ARTEMIS_HOME}/bin/artemis create \
       </address-settings>
 ```
 
-修改``miaosha-broker/etc/artemis.profile``，修改这段中``-Xms -Xmx``的配置，这两个参数控制的是内存：
+修改``miaosha-broker/etc/artemis.profile``，修改这段中``-Xms2g -Xmx2g``的配置，这两个参数控制的是内存：
 
 ```bash
-JAVA_ARGS="-XX:+UseParallelGC -XX:+AggressiveOpts -XX:+UseFastAccessorMethods -Xms1024M -Xmx1024M"
+JAVA_ARGS="-XX:+UseParallelGC -XX:+AggressiveOpts -XX:+UseFastAccessorMethods -Xms2g -Xmx2g"
 ```
 
 ### 配置tomcat
@@ -164,7 +156,7 @@ JAVA_ARGS="-XX:+UseParallelGC -XX:+AggressiveOpts -XX:+UseFastAccessorMethods -X
 新建``${TOMCAT_HOME}/bin/setenv.sh``文件，内容如下：
 
 ```bash
-CATALINA_OPTS="-server -Xmx1G -Xms1G"
+CATALINA_OPTS="-server -Xmx2G -Xms2G"
 ```
 
 ## 启动
@@ -173,18 +165,6 @@ CATALINA_OPTS="-server -Xmx1G -Xms1G"
 
 ```bash
 miaosha-broker/bin/artemis-service start
-```
-
-### 秒杀后端
-
-新建一个文件``application-jms-server.properties``，内容见这里[application-jms-server.properties](jms-server/src/main/resources/application-jms-server.properties)。需要注意的是，要修改``spring.datasource.url``参数到你自己的数据库上。
-
-运行以下命令启动选课后端程序
-
-```bash
-java -jar -server -Xms1g -Xmx1g \
-  -Dspring.config.location=application-jms-server.properties的路径 \
-  artemis-disruptor-miaosha-backend-1.0.0-SNAPSHOT.jar
 ```
 
 ### 秒杀Webapp
@@ -203,12 +183,28 @@ java -jar -server -Xms1g -Xmx1g \
 </Context>
 ```
 
+PS. webapp可以有多个节点，利用haproxy、nginx做反向代理。
+
+### 秒杀后端
+
+新建一个文件``application-jms-server.properties``，内容见这里[application-jms-server.properties](jms-server/src/main/resources/application-jms-server.properties)。需要注意的是，要修改``spring.datasource.url``参数到你自己的数据库上。
+
+运行以下命令启动选课后端程序
+
+```bash
+java -jar -server -Xms2g -Xmx2g \
+  -Dspring.config.location=application-jms-server.properties的路径 \
+  artemis-disruptor-miaosha-backend-1.0.0-SNAPSHOT.jar
+```
+
+PS. 秒杀后端只能部署有一个节点，因为商品的库存数据都在内存，而这些数据是不跨jvm共享的。
+
 ## 访问
 
 下单：
 
 ```bash
-curl -X POST 'http://localhost:8080/order' --data 'itemId=1'
+curl -X POST 'http://localhost:8080/miaosha/order' --data 'itemId=1'
 ```
 
 返回结果：
@@ -220,12 +216,27 @@ curl -X POST 'http://localhost:8080/order' --data 'itemId=1'
 上面返回的JSON的ID就是下单请求ID，然后利用这个请求ID获得下单结果：
 
 ```bash
-curl -X GET 'http://localhost:8080/order-result?requestId=325e5ef0-322a-11e7-a867-b20ed8864300'
+curl -X GET 'http://localhost:8080/miaosha/order-result?requestId=325e5ef0-322a-11e7-a867-b20ed8864300'
 ```
 
 返回结果：
 
 ```bash
 {"id":"dc6abcb6-3229-11e7-9067-b20ed8864300","requestId":"325e5ef0-322a-11e7-a867-b20ed8864300","errorMessage":null,"success":true}
+```
+
+## 利用Jmeter benchmark
+
+到[这里](http://jmeter.apache.org/download_jmeter.cgi)下载Jmeter 3.x版本。
+
+用jmeter打开项目``jmeter/benchmark.jmx``文件。
+
+1. 修改**Thread Group**里的用户数到你期望的数值
+2. 修改**Aggregate Graph**里的结果保存路径
+
+关闭jmeter，利用以下命令使用jmeter的Non-GUI模式跑测试：
+
+```bash
+JVM_ARGS="-Xms1g -Xmx1g" ${JMETER_HOME}/bin/jmeter.sh -n -t jmeter/benchmark.jmx的绝对路径
 ```
 

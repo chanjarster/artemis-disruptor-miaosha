@@ -1,4 +1,4 @@
-package me.chanjar.jms.server.utils;
+package me.chanjar.jms.base.utils;
 
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.beans.factory.config.SingletonBeanRegistry;

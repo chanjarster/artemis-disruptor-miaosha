@@ -1,7 +1,7 @@
 package me.chanjar.jms.server.config;
 
 import com.lmax.disruptor.dsl.Disruptor;
-import me.chanjar.jms.server.DisruptorLifeCycleContainer;
+import me.chanjar.jms.base.lifecycle.DisruptorLifeCycleContainer;
 import me.chanjar.jms.server.StartupOrderConstants;
 import me.chanjar.jms.server.command.infras.CommandDispatcher;
 import me.chanjar.jms.server.command.infras.disruptor.*;
@@ -9,7 +9,7 @@ import me.chanjar.jms.server.command.order.OrderInsertCommand;
 import me.chanjar.jms.server.command.order.OrderInsertCommandBuffer;
 import me.chanjar.jms.server.command.order.OrderInsertCommandExecutor;
 import me.chanjar.jms.server.command.order.OrderInsertCommandProcessor;
-import me.chanjar.jms.server.utils.BeanRegisterUtils;
+import me.chanjar.jms.base.utils.BeanRegisterUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;

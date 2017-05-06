@@ -1,4 +1,4 @@
-package me.chanjar.jms.server;
+package me.chanjar.jms.base.lifecycle;
 
 import com.lmax.disruptor.dsl.Disruptor;
 import org.slf4j.Logger;

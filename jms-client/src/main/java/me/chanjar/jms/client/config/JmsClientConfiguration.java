@@ -6,23 +6,30 @@ import me.chanjar.jms.base.factory.producer.MessageProducerFactory;
 import me.chanjar.jms.base.factory.producer.MessageProducerOption;
 import me.chanjar.jms.base.factory.session.SessionFactory;
 import me.chanjar.jms.base.factory.session.SessionOption;
+import me.chanjar.jms.base.lifecycle.DisruptorLifeCycleContainer;
 import me.chanjar.jms.base.lifecycle.MessageConsumerLifeCycleContainer;
 import me.chanjar.jms.base.lifecycle.MessageProducerLifeCycleContainer;
 import me.chanjar.jms.base.lifecycle.SessionLifeCycleContainer;
 import me.chanjar.jms.base.sender.JmsMessageSender;
-import me.chanjar.jms.base.sender.simple.SimpleJmsMessageSenderFactory;
+import me.chanjar.jms.base.sender.disruptor.DisruptorJmsMessageSender;
+import me.chanjar.jms.base.sender.disruptor.DisruptorJmsMessageSenderFactory;
 import me.chanjar.jms.base.utils.ArtemisMessageDtoDupMessageDetectStrategy;
+import me.chanjar.jms.base.utils.BeanRegisterUtils;
 import me.chanjar.jms.client.command.ResponseCache;
 import me.chanjar.jms.client.command.ResponseJmsMessageListener;
+import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
 
 import javax.jms.*;
 
 @Configuration
-public class JmsClientConfiguration {
+public class JmsClientConfiguration implements ApplicationContextAware {
 
   @Autowired
   private ResponseCache responseCache;
@@ -38,6 +45,8 @@ public class JmsClientConfiguration {
   @Autowired
   @Qualifier("defaultTopic")
   private Topic topic;
+
+  private ApplicationContext applicationContext;
 
   @Bean
   public Session requestSession() throws JMSException {
@@ -67,11 +76,21 @@ public class JmsClientConfiguration {
   @Bean
   public JmsMessageSender requestMessageSender() throws JMSException {
 
-    return SimpleJmsMessageSenderFactory.create(
+    DisruptorJmsMessageSender messageSender = DisruptorJmsMessageSenderFactory.create(
         requestSession(),
         requestMessageProducer(),
-        new ArtemisMessageDtoDupMessageDetectStrategy()
+        new ArtemisMessageDtoDupMessageDetectStrategy(),
+        1 << 13 // 8192
     );
+
+
+    BeanRegisterUtils.registerSingleton(
+        applicationContext,
+        "RequestDtoEventDisruptorLifeCycleContainer",
+        new DisruptorLifeCycleContainer("RequestDtoEventDisruptor", messageSender.getDisruptor(),
+            Ordered.HIGHEST_PRECEDENCE));
+
+    return messageSender;
 
   }
 
@@ -123,4 +142,8 @@ public class JmsClientConfiguration {
 
   }
 
+  @Override
+  public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+    this.applicationContext = applicationContext;
+  }
 }
