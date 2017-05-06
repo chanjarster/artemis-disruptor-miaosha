@@ -1,5 +1,7 @@
 package me.chanjar.jms.server.memdb;
 
+import org.apache.commons.lang3.builder.ToStringBuilder;
+
 import java.io.Serializable;
 
 /**
@@ -41,12 +43,29 @@ public class Item implements Serializable {
    */
   public boolean decreaseAmount() {
 
-    if (amount == 0) {
+    if (!hasRemaining()) {
       return false;
     }
     amount--;
     return true;
 
+  }
+
+  /**
+   * 是否还有库存
+   *
+   * @return
+   */
+  public boolean hasRemaining() {
+    return amount > 0;
+  }
+
+  @Override
+  public String toString() {
+    return new ToStringBuilder(this)
+        .append("id", id)
+        .append("amount", amount)
+        .toString();
   }
 
 }

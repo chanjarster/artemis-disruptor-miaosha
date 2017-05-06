@@ -18,6 +18,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import javax.sql.DataSource;
 import java.util.concurrent.Executors;
@@ -33,7 +34,7 @@ public class ItemAmountUpdateProcessorConfiguration implements ApplicationContex
   private CommandDispatcher commandDispatcher;
 
   @Autowired
-  private DataSource dataSource;
+  private JdbcTemplate jdbcTemplate;
 
   private ApplicationContext applicationContext;
 
@@ -45,7 +46,7 @@ public class ItemAmountUpdateProcessorConfiguration implements ApplicationContex
     for (int i = 0; i < conf.getNum(); i++) {
 
       ItemAmountUpdateCommandBuffer cmdBuffer = new ItemAmountUpdateCommandBuffer(conf.getSqlBufferSize());
-      ItemAmountUpdateCommandExecutor cmdExecutor = new ItemAmountUpdateCommandExecutor(dataSource);
+      ItemAmountUpdateCommandExecutor cmdExecutor = new ItemAmountUpdateCommandExecutor(jdbcTemplate);
 
       Disruptor<CommandEvent<ItemAmountUpdateCommand>> disruptor = new Disruptor<>(
           new CommandEventFactory(),

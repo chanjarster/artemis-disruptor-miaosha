@@ -5,11 +5,11 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.jdbc.core.JdbcTemplate;
 
-import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.util.List;
+
+import static java.util.stream.Collectors.toList;
 
 public class ItemAmountUpdateCommandExecutor implements CommandExecutor<ItemAmountUpdateCommandBuffer> {
 
@@ -17,10 +17,10 @@ public class ItemAmountUpdateCommandExecutor implements CommandExecutor<ItemAmou
 
   private static final String SQL = "UPDATE ITEM SET AMOUNT = ? WHERE ID = ?";
 
-  private final DataSource dataSource;
+  private JdbcTemplate jdbcTemplate;
 
-  public ItemAmountUpdateCommandExecutor(DataSource dataSource) {
-    this.dataSource = dataSource;
+  public ItemAmountUpdateCommandExecutor(JdbcTemplate jdbcTemplate) {
+    this.jdbcTemplate = jdbcTemplate;
   }
 
   @Override
@@ -31,38 +31,16 @@ public class ItemAmountUpdateCommandExecutor implements CommandExecutor<ItemAmou
       return;
     }
 
-    try (Connection connection = dataSource.getConnection()) {
+    List<Object[]> args = commands.stream().map(cmd -> new Object[] { cmd.getAmount(), cmd.getItemId() })
+        .collect(toList());
+    try {
 
-      try (PreparedStatement preparedStatement = connection.prepareStatement(SQL)) {
-
-        for (ItemAmountUpdateCommand command : commands) {
-
-          preparedStatement.setInt(1, command.getAmount());
-          preparedStatement.setLong(2, command.getItemId());
-          preparedStatement.addBatch();
-
-        }
-
-        preparedStatement.executeBatch();
-
-      } catch (Exception e) {
-
-        if (!connection.getAutoCommit()) {
-          connection.rollback();
-        }
-        throw e;
-
-      }
-
-      if (!connection.getAutoCommit()) {
-        connection.commit();
-      }
-
-      commands.forEach(command ->  LOGGER.info("Executed", command));
+      jdbcTemplate.batchUpdate(SQL, args);
+      commands.forEach(command -> LOGGER.info("Executed", command));
 
     } catch (Exception e) {
 
-      commands.forEach(command ->  LOGGER.error("Failed", command));
+      commands.forEach(command -> LOGGER.error("Failed", command));
       LOGGER.error(ExceptionUtils.getStackTrace(e));
 
     }

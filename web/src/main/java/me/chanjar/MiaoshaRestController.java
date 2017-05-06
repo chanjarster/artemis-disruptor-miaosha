@@ -1,8 +1,6 @@
 package me.chanjar;
 
 import me.chanjar.jms.client.command.MiaoShaCommandService;
-import me.chanjar.jms.client.query.ItemEntity;
-import me.chanjar.jms.client.query.MiaoShaQueryService;
 import me.chanjar.jms.msg.RequestDto;
 import me.chanjar.jms.msg.ResponseDto;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -12,8 +10,6 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-
 /**
  * 秒杀Rest Controller
  */
@@ -21,13 +17,6 @@ import java.util.List;
 public class MiaoshaRestController {
 
   private MiaoShaCommandService miaoshaCommandService;
-
-  private MiaoShaQueryService miaoShaQueryService;
-
-  @RequestMapping(value = "/items", method = RequestMethod.GET)
-  public List<ItemEntity> getItems() {
-    return miaoShaQueryService.queryAll();
-  }
 
   /**
    * 下单
@@ -60,11 +49,6 @@ public class MiaoshaRestController {
   @Autowired
   public void setMiaoshaCommandService(MiaoShaCommandService miaoshaCommandService) {
     this.miaoshaCommandService = miaoshaCommandService;
-  }
-
-  @Autowired
-  public void setMiaoShaQueryService(MiaoShaQueryService miaoShaQueryService) {
-    this.miaoShaQueryService = miaoShaQueryService;
   }
 
   /**

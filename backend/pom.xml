@@ -17,11 +17,6 @@
   <properties>
     <java.version>1.8</java.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <downloadSources>true</downloadSources>
-    <downloadJavadocs>true</downloadJavadocs>
-    <testng.version>6.8.7</testng.version>
-    <assembly.program.jvmopts>-server -Xms2g -Xmx2g</assembly.program.jvmopts>
-    <maven.install.skip>true</maven.install.skip>
   </properties>
 
   <dependencies>
@@ -46,13 +41,6 @@
             </goals>
           </execution>
         </executions>
-      </plugin>
-
-      <plugin>
-        <artifactId>maven-deploy-plugin</artifactId>
-        <configuration>
-          <skip>true</skip>
-        </configuration>
       </plugin>
     </plugins>
   </build>

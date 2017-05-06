@@ -5,23 +5,23 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.jdbc.core.JdbcTemplate;
 
-import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.util.List;
+
+import static java.util.stream.Collectors.toList;
 
 public class OrderInsertCommandExecutor implements CommandExecutor<OrderInsertCommandBuffer> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(OrderInsertCommandExecutor.class);
 
-  private static final String INSERT_SQL = "INSERT INTO ITEM_ORDER(ID, ITEM_ID, USER_ID)\n"
+  private static final String SQL = "INSERT INTO ITEM_ORDER(ID, ITEM_ID, USER_ID)\n"
       + "VALUES (SEQ_ITEM_ORDER.nextval, ?, ?)";
 
-  private final DataSource dataSource;
+  private JdbcTemplate jdbcTemplate;
 
-  public OrderInsertCommandExecutor(DataSource dataSource) {
-    this.dataSource = dataSource;
+  public OrderInsertCommandExecutor(JdbcTemplate jdbcTemplate) {
+    this.jdbcTemplate = jdbcTemplate;
   }
 
   @Override
@@ -32,35 +32,12 @@ public class OrderInsertCommandExecutor implements CommandExecutor<OrderInsertCo
       return;
     }
 
-    try (Connection connection = dataSource.getConnection()) {
+    List<Object[]> args = commands.stream().map(cmd -> new Object[] { cmd.getItemId(), cmd.getUserId() })
+        .collect(toList());
 
-      try (PreparedStatement preparedStatement = connection.prepareStatement(INSERT_SQL)) {
+    try  {
 
-        for (OrderInsertCommand command : commands) {
-
-          preparedStatement.setLong(1, command.getItemId());
-          preparedStatement.setString(2, command.getUserId());
-
-          preparedStatement.addBatch();
-
-        }
-
-        preparedStatement.executeBatch();
-
-      } catch (Exception e) {
-
-        if (!connection.getAutoCommit()) {
-          connection.rollback();
-        }
-
-        throw e;
-
-      }
-
-      if (!connection.getAutoCommit()) {
-        connection.commit();
-      }
-
+      jdbcTemplate.batchUpdate(SQL, args);
       commands.forEach(command -> LOGGER.info("Executed", command));
 
     } catch (Exception e) {

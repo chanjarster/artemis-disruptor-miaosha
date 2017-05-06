@@ -1,8 +1,11 @@
 package me.chanjar.jms.server.memdb;
 
+import org.springframework.stereotype.Component;
+
 import java.util.HashMap;
 import java.util.Map;
 
+@Component
 public class ItemRepositoryImpl implements ItemRepository {
 
   private final Map<Long, Item> data = new HashMap<>(1000);

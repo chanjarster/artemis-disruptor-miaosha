@@ -15,11 +15,6 @@
   <dependencies>
 
     <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-jdbc</artifactId>
-    </dependency>
-
-    <dependency>
       <groupId>me.chanjar</groupId>
       <artifactId>artemis-disruptor-miaosha-jms-base</artifactId>
       <version>${project.version}</version>

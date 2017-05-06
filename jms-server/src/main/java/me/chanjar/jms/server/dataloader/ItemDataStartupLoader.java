@@ -2,6 +2,8 @@ package me.chanjar.jms.server.dataloader;
 
 import me.chanjar.jms.server.memdb.Item;
 import me.chanjar.jms.server.memdb.ItemRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.Ordered;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -15,6 +17,8 @@ import java.util.List;
 @Component
 public class ItemDataStartupLoader extends DataStartupLoader {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(ItemDataStartupLoader.class);
+
   private JdbcTemplate jdbcTemplate;
 
   private ItemRepository itemRepository;
@@ -24,7 +28,11 @@ public class ItemDataStartupLoader extends DataStartupLoader {
     List<Item> items = jdbcTemplate.query("select id, amount from item",
         (rs, rowNum) -> new Item(rs.getLong(1), rs.getInt(2)));
 
-    items.stream().forEach(item -> itemRepository.put(item));
+    items.stream().forEach(item -> {
+      itemRepository.put(item);
+      LOGGER.info("Load Item from database: {}", item.toString());
+    });
+
   }
 
   @Override

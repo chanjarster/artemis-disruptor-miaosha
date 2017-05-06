@@ -1,4 +1,5 @@
 # artemis-disruptor-miaosha
+
 基于Apache Artemis 和 Disruptor 的秒杀项目demo
 
 ## 编译打包
@@ -14,9 +15,67 @@ mvn install:install-file -Dfile=ojdbc7.jar -DgroupId=com.oracle -DartifactId=ojd
 
 ### 安装JDK8
 
+下载[JDK8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html)
+
+### 安装Oracle
+
+如果有条件，可以使用Oracle 12c版本，如果没有则可以使用Oracle 11g。
+
+本人用的是[Oracle EX 11g的Docker image](https://hub.docker.com/r/wnameless/oracle-xe-11g/)，下面介绍Docker的流程
+
+
+```bash
+# docker下载oracle-xe-11g的image，并启动
+docker run -d -p 1521:1521 --name oralce-xe wnameless/oracle-xe-11g
+
+# 关闭oracle-xe
+docker stop oracle-xe
+
+# 启动oracle-xe
+docker start oracle-xe
+```
+
+用任意客户端连接oracle，推荐使用Intellij IDEA自带的Database工具连接，这样就不用额外下载客户端了。
+
+以用户名system，密码oracle连接oracle，执行以下sql创建schema：
+
+```sql
+CREATE USER miaosha IDENTIFIED BY "miaosha";
+```
+
+然后以用户名miaosha，密码miaosha连接oracle，执行以下sql初始化数据：
+
+```sql
+CREATE TABLE ITEM (
+  ID     NUMBER(19) PRIMARY KEY,
+  NAME   VARCHAR2(500),
+  AMOUNT NUMBER(19) DEFAULT 0 NOT NULL
+);
+CREATE SEQUENCE SEQ_ITEM;
+CREATE TABLE ITEM_ORDER (
+  ID      NUMBER(19) PRIMARY KEY,
+  ITEM_ID NUMBER(19) REFERENCES ITEM (ID) NOT NULL,
+  USER_ID VARCHAR(500)
+);
+CREATE SEQUENCE SEQ_ITEM_ORDER CACHE 1000;
+
+insert into ITEM(ID, NAME, AMOUNT) VALUES (SEQ_ITEM.nextval, '商品01', 100);
+insert into ITEM(ID, NAME, AMOUNT) VALUES (SEQ_ITEM.nextval, '商品02', 100);
+insert into ITEM(ID, NAME, AMOUNT) VALUES (SEQ_ITEM.nextval, '商品03', 100);
+insert into ITEM(ID, NAME, AMOUNT) VALUES (SEQ_ITEM.nextval, '商品04', 100);
+insert into ITEM(ID, NAME, AMOUNT) VALUES (SEQ_ITEM.nextval, '商品05', 100);
+insert into ITEM(ID, NAME, AMOUNT) VALUES (SEQ_ITEM.nextval, '商品06', 100);
+insert into ITEM(ID, NAME, AMOUNT) VALUES (SEQ_ITEM.nextval, '商品07', 100);
+insert into ITEM(ID, NAME, AMOUNT) VALUES (SEQ_ITEM.nextval, '商品08', 100);
+insert into ITEM(ID, NAME, AMOUNT) VALUES (SEQ_ITEM.nextval, '商品09', 100);
+commit;
+```
+
 ### 配置Artemis
 
-下载[Apache Artemis 1.5.4](https://www.apache.org/dyn/closer.cgi?filename=activemq/activemq-artemis/1.5.4/apache-artemis-1.5.4-bin.tar.gz&action=download)。解压之后到任意目录执行以下命令：
+下载[Apache Artemis 1.5.4](https://www.apache.org/dyn/closer.cgi?filename=activemq/activemq-artemis/1.5.4/apache-artemis-1.5.4-bin.tar.gz&action=download)，解压。
+
+到任意目录执行以下命令：
 
 ```bash
 ${ARTEMIS_HOME}/bin/artemis create \
@@ -62,10 +121,10 @@ ${ARTEMIS_HOME}/bin/artemis create \
       </address-settings>
 ```
 
-修改 ${ARTEMIS_INSTANCE}/etc/artemis.profile，将修改这段中-Xms -Xmx的配置，这两个参数控制的是内存：
+修改``miaosha-broker/etc/artemis.profile``，修改这段中``-Xms -Xmx``的配置，这两个参数控制的是内存：
 
 ```bash
-JAVA_ARGS="-XX:+UseParallelGC -XX:+AggressiveOpts -XX:+UseFastAccessorMethods -Xms512M -Xmx1024M"
+JAVA_ARGS="-XX:+UseParallelGC -XX:+AggressiveOpts -XX:+UseFastAccessorMethods -Xms1024M -Xmx1024M"
 ```
 
 ### 配置tomcat
@@ -75,42 +134,98 @@ JAVA_ARGS="-XX:+UseParallelGC -XX:+AggressiveOpts -XX:+UseFastAccessorMethods -X
 修改``${TOMCAT_HOME}/conf/server.xml``文件，替换成以下内容：
 
 ```xml
-TODO
+<Server port="8005" shutdown="SHUTDOWN">
+  <Listener className="org.apache.catalina.startup.VersionLoggerListener" />
+  <Listener className="org.apache.catalina.core.AprLifecycleListener" SSLEngine="on" />
+  <Listener className="org.apache.catalina.core.JreMemoryLeakPreventionListener" />
+  <Listener className="org.apache.catalina.mbeans.GlobalResourcesLifecycleListener" />
+  <Listener className="org.apache.catalina.core.ThreadLocalLeakPreventionListener" />
+
+  <Service name="Catalina">
+
+    <Connector port="8080" protocol="HTTP/1.1"
+      URIEncoding="UTF-8"
+      enableLookups="false"
+      acceptCount="100"
+      maxThreads="1000"
+      minSpareThreads="200"
+      connectionTimeout="15000"      
+    />
+
+    <Engine name="Catalina" defaultHost="localhost">
+      <Host name="localhost"  appBase="webapps" unpackWARs="true" autoDeploy="true">
+      </Host>
+    </Engine>
+  </Service>
+
+</Server>
 ```
 
-修改``${TOMCAT_HOME}/bin/setenv.sh``文件，内容如下：
+新建``${TOMCAT_HOME}/bin/setenv.sh``文件，内容如下：
 
 ```bash
-TODO
+CATALINA_OPTS="-server -Xmx1G -Xms1G"
 ```
 
 ## 启动
 
+### Apache Artemis
+
+```bash
+miaosha-broker/bin/artemis-service start
+```
+
 ### 秒杀后端
 
-新建一个文件``application-backend.properties``，内容如下：
-```
-TODO
-```
+新建一个文件``application-jms-server.properties``，内容见这里[application-jms-server.properties](jms-server/src/main/resources/application-jms-server.properties)。需要注意的是，要修改``spring.datasource.url``参数到你自己的数据库上。
 
 运行以下命令启动选课后端程序
 
 ```bash
-TODO
+java -jar -server -Xms1g -Xmx1g \
+  -Dspring.config.location=application-jms-server.properties的路径 \
+  artemis-disruptor-miaosha-backend-1.0.0-SNAPSHOT.jar
 ```
-
 
 ### 秒杀Webapp
 
-新建文件``application-webapp.properties``，内容如下：
-```
-TODO
-```
+新建文件``application-jms-client.properties``，内容见这里[application-jms-client.properties](jms-client/src/main/resources/application-jms-client.properties)
 
 将``artemis-disruptor-miaosha-web-1.0.0-SNAPSHOT.war``放到``${TOMCAT_HOME}/webapps``下，并改名为``miaosha.war``
 
 到``${TOMCAT_HOME}/conf/Catalina/localhost``下新建``miaosha.xml``文件，内容如下：
 
 ```xml
-TODO
+<?xml version="1.0" encoding="UTF-8"?>
+<Context>
+  <Environment name="spring.config.location" value="application-webapp.properties的绝对路径" type="java.lang.String"/>
+  <Resources cachingAllowed="true" cacheMaxSize="100000" />
+</Context>
 ```
+
+## 访问
+
+下单：
+
+```bash
+curl -X POST 'http://localhost:8080/order' --data 'itemId=1'
+```
+
+返回结果：
+
+```bash
+{"id":"325e5ef0-322a-11e7-a867-b20ed8864300","itemId":1,"userId":"HFxUS"}
+```
+
+上面返回的JSON的ID就是下单请求ID，然后利用这个请求ID获得下单结果：
+
+```bash
+curl -X GET 'http://localhost:8080/order-result?requestId=325e5ef0-322a-11e7-a867-b20ed8864300'
+```
+
+返回结果：
+
+```bash
+{"id":"dc6abcb6-3229-11e7-9067-b20ed8864300","requestId":"325e5ef0-322a-11e7-a867-b20ed8864300","errorMessage":null,"success":true}
+```
+

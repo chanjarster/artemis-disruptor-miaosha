@@ -35,7 +35,8 @@ public class ArtemisJmsConfiguration {
 
   @Bean
   public Connection defaultConnection() throws Exception {
-    return defaultConnectionFactory().createConnection(artemisProperties.getUsername(), artemisProperties.getPassword());
+    return defaultConnectionFactory()
+        .createConnection(artemisProperties.getUsername(), artemisProperties.getPassword());
   }
 
   @Bean

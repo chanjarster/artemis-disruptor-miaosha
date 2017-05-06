@@ -18,7 +18,6 @@ public class RequestDtoEventExceptionHandler implements ExceptionHandler<Request
         createExceptionResponseDto(event.getRequestDto().getId(), ExceptionUtils.getStackTrace(ex))
     );
     LOGGER.error("{} : {}. {} ", event.getRequestDto().getClass().getName(), event.getRequestDto().getId(), ExceptionUtils.getStackTrace(ex));
-
   }
 
   private ResponseDto createExceptionResponseDto(String requestId, String exception) {

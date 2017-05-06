@@ -20,8 +20,8 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.JdbcTemplate;
 
-import javax.sql.DataSource;
 import java.util.concurrent.Executors;
 
 @Configuration
@@ -37,7 +37,7 @@ public class OrderInsertProcessorConfiguration implements ApplicationContextAwar
   private CommandDispatcher commandDispatcher;
 
   @Autowired
-  private DataSource dataSource;
+  private JdbcTemplate jdbcTemplate;
 
   private ApplicationContext applicationContext;
 
@@ -51,7 +51,7 @@ public class OrderInsertProcessorConfiguration implements ApplicationContextAwar
     for (int i = 0; i < conf.getNum(); i++) {
 
       OrderInsertCommandBuffer cmdBuffer = new OrderInsertCommandBuffer(conf.getSqlBufferSize());
-      OrderInsertCommandExecutor cmdExecutor = new OrderInsertCommandExecutor(dataSource);
+      OrderInsertCommandExecutor cmdExecutor = new OrderInsertCommandExecutor(jdbcTemplate);
 
       Disruptor<CommandEvent<OrderInsertCommand>> disruptor = new Disruptor<>(
           new CommandEventFactory(),

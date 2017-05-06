@@ -39,23 +39,22 @@ public class RequestDisruptorConfiguration implements ApplicationContextAware {
   @Bean
   public RequestDtoEventProducer requestDtoEventProducer() throws JMSException {
 
+    RequestDtoEventDbOutputer requestDtoEventDbOutputer = new RequestDtoEventDbOutputer();
+    requestDtoEventDbOutputer.setCommandDispatcher(commandDispatcher());
+
+    RequestDtoEventJmsOutputer requestDtoEventJmsOutputer = new RequestDtoEventJmsOutputer();
+    requestDtoEventJmsOutputer.setMessageSender(applicationContext.getBean("responseMessageSender", JmsMessageSender.class));
+
     Disruptor<RequestDtoEvent> disruptor = new Disruptor<>(
         new RequestDtoEventFactory(),
         disruptorProperties.getJvmQueueSize(),
         Executors.defaultThreadFactory()
     );
 
-    EventHandlerGroup<RequestDtoEvent> group = disruptor
-        .handleEventsWith(requestDtoEventBusinessHandler());
-
-    RequestDtoEventDbOutputer requestDtoEventDbOutputer = new RequestDtoEventDbOutputer();
-    requestDtoEventDbOutputer.setCommandDispatcher(commandDispatcher());
-
-    RequestDtoEventJmsOutputer requestDtoEventJmsOutputer = new RequestDtoEventJmsOutputer();
-    requestDtoEventJmsOutputer.setMessageSender(applicationContext.getBean("responseMessageSender", JmsMessageSender.class));
-    group.then(requestDtoEventJmsOutputer, requestDtoEventDbOutputer);
-
-    group.then(new RequestDtoEventGcHandler());
+    disruptor
+        .handleEventsWith(requestDtoEventBusinessHandler())
+        .then(requestDtoEventJmsOutputer, requestDtoEventDbOutputer)
+        .then(new RequestDtoEventGcHandler());
 
     // disruptor 的异常处理是这样的,
     // 不论这种形式 A->B, 还是这种形式 A,B->C,D, 只有抛出异常的那个handler会中断执行

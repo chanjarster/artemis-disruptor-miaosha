@@ -2,12 +2,8 @@ package me.chanjar.jms.server.command.order;
 
 import me.chanjar.jms.server.command.infras.CommandProcessor;
 import me.chanjar.jms.server.command.infras.disruptor.CommandEventProducer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class OrderInsertCommandProcessor implements CommandProcessor<OrderInsertCommand> {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(OrderInsertCommandProcessor.class);
 
   private final CommandEventProducer<OrderInsertCommand>[] commandEventProducerList;
 
