@@ -29,27 +29,29 @@ public class RequestDtoEventBusinessHandler implements EventHandler<RequestDtoEv
 
     if (item == null) {
 
-      responseDto.setErrorMessage("内存中还未缓存商品数据");
       responseDto.setSuccess(false);
+      responseDto.setErrorMessage("内存中还未缓存商品数据");
 
     } else if (item.decreaseAmount()) {
 
       responseDto.setSuccess(true);
 
+      event.getCommandCollector().addCommand(
+          new ItemAmountUpdateCommand(requestDto.getId(), item.getId(), item.getAmount())
+      );
+      event.getCommandCollector().addCommand(
+          new OrderInsertCommand(requestDto.getId(), item.getId(), requestDto.getUserId())
+      );
+
     } else {
 
-      responseDto.setErrorMessage("库存不足");
       responseDto.setSuccess(false);
+      responseDto.setErrorMessage("库存不足");
 
     }
+
     event.setResponseDto(responseDto);
 
-    event.getCommandCollector().addCommand(
-        new ItemAmountUpdateCommand(requestDto.getId(), item.getId(), item.getAmount())
-    );
-    event.getCommandCollector().addCommand(
-        new OrderInsertCommand(requestDto.getId(), item.getId(), requestDto.getUserId())
-    );
 
   }
 
