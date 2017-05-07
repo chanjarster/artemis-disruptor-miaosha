@@ -10,7 +10,7 @@
 
 从部署拓扑上看，架构分为4个部分：
 
-1. 运行在Tomcat中的webapp
+1. 运行在Tomcat中的webapp(可以集群部署)
 2. Artemis消息队列
 3. standalone backend程序
 4. Oracle数据库
@@ -19,7 +19,7 @@
 
 先说一下性能表现吧，因为大家对这个比较感兴趣。
 
-硬件环境（所有程序都是在一台电脑上做的）：
+硬件环境（所有程序都是在一台电脑跑）：
 
 * MacBook Pro (Retina, 15-inch, Mid 2014)
 * 2.2 GHz Intel Core i7
@@ -30,7 +30,7 @@
 
 * java version "1.8.0_131"
 * Artemis 1.5.4
-* Oracle XE 11g (docker)
+* Oracle XE 11g (Docker)
 * Tomcat 8.5.14
 
 相关配置见[如何准备环境](Environment.md)
