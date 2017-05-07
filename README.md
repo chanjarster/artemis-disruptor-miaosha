@@ -101,5 +101,4 @@ PS. 数据库表现从后端程序的日志中分析的。
 * [如何准备环境](Environment.md)
 * [如何构建](Build.md)
 * [如何启动](Run.md)
-* [如何访问](Test.md)
 * [如何Benchmark](Benchmark.md)
