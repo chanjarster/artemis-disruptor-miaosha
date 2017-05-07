@@ -1,267 +1,105 @@
 # artemis-disruptor-miaosha
 
-基于Apache Artemis 和 Disruptor 的秒杀项目demo
+基于Apache Artemis 和 Disruptor 的秒杀项目demo。
 
-## 编译打包
-1. 到[这里](http://www.oracle.com/technetwork/database/features/jdbc/jdbc-drivers-12c-download-1958347.html)下载ojdbc7.jar，然后运行以下命令将其安装到到本地maven仓库
-```bash
-mvn install:install-file -Dfile=ojdbc7.jar -DgroupId=com.oracle -DartifactId=ojdbc -Dversion=12.1.0.2 -Dpackaging=jar
+本项目的灵感来自于[秒杀、抢购解决方案，设计目标：性能支撑"小米印度抢购搞挂亚马逊事件”](http://git.oschina.net/1028125449/miaosha)。
+
+在看了很多基于redis+消息队列的秒杀架构之后，决定自己写一点特别的秒杀架构。
+
+## 架构说明
+
+从部署拓扑上看，架构分为4个部分：
+
+1. 运行在Tomcat中的webapp
+2. Artemis消息队列
+3. standalone backend程序
+4. Oracle数据库
+
+## 性能表现
+
+先说一下性能表现吧，因为大家对这个比较感兴趣。
+
+硬件环境（所有程序都是在一台电脑上做的）：
+
+* MacBook Pro (Retina, 15-inch, Mid 2014)
+* 2.2 GHz Intel Core i7
+* 16 GB 1600 MHz DDR3
+* 512G SSD
+
+软件环境：
+
+* java version "1.8.0_131"
+* Artemis 1.5.4
+* Oracle XE 11g (docker)
+* Tomcat 8.5.14
+
+相关配置见[如何准备环境](Environment.md)
+
+一共Benchmark了两次，因为在测试过程中发现Tomcat在warm-up之后性能会更好，两次都是30W请求，测试Jmeter脚本见[如何Benchmark](Benchmark.md)。
+
+第一次结果：
+
+* Tomcat的表现：300000 in 00:01:57 = 2569.8/s Avg:   108 Min:     0 Max: 41102 Err:   164 (0.05%)
+* 数据库表现：299836条订单 ／ 121秒 = 2477条/s
+
+PS. 数据库表现从后端程序的日志中分析的。
+
+第二次结果：
+
+不重启Tomcat和Artemis，把数据库的数据恢复后，重启了后端程序
+
+* Tomcat的表现：300000 in 00:00:35 = 8527.8/s Avg:    20 Min:     0 Max:  4515 Err:     2 (0.00%)
+* 数据库表现：246873 / 46 秒 = 5366条 / s
+
+数据库记录数偏少是因为Artemis缓存区满了，把消息丢掉了
+
 ```
-2. 运行``maven clean install``命令打包整个项目
-3. 到``web/target/artemis-disruptor-miaosha-web-1.0.0-SNAPSHOT.war``获得webapp的war包
-4. 到``backend/target/artemis-disruptor-miaosha-backend-1.0.0-SNAPSHOT.jar``获得后端程序的jar包
-
-## 准备环境
-
-### 安装JDK8
-
-下载[JDK8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html)
-
-### 安装Oracle
-
-如果有条件，可以使用Oracle 12c版本，如果没有则可以使用Oracle 11g。
-
-本人用的是[Oracle EX 11g的Docker image](https://hub.docker.com/r/wnameless/oracle-xe-11g/)，下面介绍Docker的流程
-
-
-```bash
-# docker下载oracle-xe-11g的image，并启动
-docker run -d -p 1521:1521 --name oralce-xe wnameless/oracle-xe-11g
-
-# 关闭oracle-xe
-docker stop oracle-xe
-
-# 启动oracle-xe
-docker start oracle-xe
-```
-
-用任意客户端连接oracle，推荐使用Intellij IDEA自带的Database工具连接，这样就不用额外下载客户端了。
-
-以用户名system，密码oracle连接oracle，执行以下sql创建schema：
-
-```sql
-CREATE USER miaosha IDENTIFIED BY "miaosha";
-```
-
-然后以用户名miaosha，密码miaosha连接oracle，执行以下sql初始化数据：
-
-```sql
-CREATE TABLE ITEM (
-  ID     NUMBER(19) PRIMARY KEY,
-  NAME   VARCHAR2(500),
-  AMOUNT NUMBER(19) DEFAULT 0 NOT NULL
-);
-
-CREATE TABLE ITEM_ORDER (
-  ID      NUMBER(19) PRIMARY KEY,
-  ITEM_ID NUMBER(19) REFERENCES ITEM (ID) NOT NULL,
-  USER_ID VARCHAR(500)
-);
-CREATE SEQUENCE SEQ_ITEM_ORDER CACHE 1000;
+11:47:14,789 WARN  [org.apache.activemq.artemis.core.server] AMQ222039: Messages sent to address 'jms.queue.MiaoSha.request' are being dropped; size is currently: 104,858,376 bytes; max-size-byt
 ```
 
-### 配置Artemis
+## 优化项
 
-下载[Apache Artemis 1.5.4](https://www.apache.org/dyn/closer.cgi?filename=activemq/activemq-artemis/1.5.4/apache-artemis-1.5.4-bin.tar.gz&action=download)，解压。
+架构上的优化点
 
-到任意目录执行以下命令：
+1. 下单请求异步处理
+1. 在秒杀期间，商品库存信息在内存中，库存判断及库存扣减都在内存中进行，之后异步到数据库
+1. 利用Disruptor将并发请求串行化，同时避免了多线程编程复杂度
+1. 抛弃数据库事务，采用最终一致性
 
-```bash
-${ARTEMIS_HOME}/bin/artemis create \
-        --user miaosha \
-        --password miaosha \
-        --role client \
-        --require-login \
-        --disable-persistence \
-        --topics MiaoSha.response \
-        --queues MiaoSha.request \
-        --no-stomp-acceptor \
-        --no-mqtt-acceptor \
-        --no-amqp-acceptor \
-        --no-hornetq-acceptor \
-        --no-web \
-        -- miaosha-broker
-```
+和JMS相关的优化点
 
-把命令里的${ARTEMIS_HOME}替换成为Apache Artemis的解压目录。
+1. 重用JMS Connection、Session、MessageProducer、MessageConsumer，而不是每次都创建这些对象（Spring的JmsTemplate就是这么干的）
+1. 将JMS Session设定为transacted=false, AUTO_ACKNOWLEDGE
+1. 发送JMS消息是，DeliveryMode=NON_PERSISTENT
+1. 关闭Artemis的重发、消息持久机制
 
-命令执行完毕后会产生一个``miaosha-broker``的目录，进入这个目录，修改``etc/broker.xml``文件，修改``<address-settings>``部分，变成这样
+和JDBC相关的优化点
 
-```xml
-      <address-settings>
-         <address-setting match="jms.*.MiaoSha.#">
-            <redelivery-delay>0</redelivery-delay>
-            <max-delivery-attempts>0</max-delivery-attempts>
-            <max-size-bytes>52428800</max-size-bytes>
-            <message-counter-history-day-limit>1</message-counter-history-day-limit>
-            <address-full-policy>DROP</address-full-policy>
-         </address-setting>
-  
-         <!--default for catch all
-         <address-setting match="#">
-            <dead-letter-address>jms.queue.DLQ</dead-letter-address>
-            <expiry-address>jms.queue.ExpiryQueue</expiry-address>
-            <redelivery-delay>0</redelivery-delay>
-            <max-size-bytes>10485760</max-size-bytes>
-            <message-counter-history-day-limit>10</message-counter-history-day-limit>
-            <address-full-policy>BLOCK</address-full-policy>
-         </address-setting>
-         -->
-      </address-settings>
-```
+1. 使用JDBC Batch Update，减少和数据库网络IO的次数
+1. 优化更新商品库存的DB操作，将多个更新商品库存的请求合并成一条update，而不是多个update
 
-修改``miaosha-broker/etc/artemis.profile``，修改这段中``-Xms2g -Xmx2g``的配置，这两个参数控制的是内存：
+## 流程说明
 
-```bash
-JAVA_ARGS="-XX:+UseParallelGC -XX:+AggressiveOpts -XX:+UseFastAccessorMethods -Xms2g -Xmx2g"
-```
+本项目只提供了两个接口：
 
-### 配置tomcat
+1. 下单接口。用于下单。
+2. 查询下单结果的接口。用于查询下单是否成功。
 
-下载[Apache Tomcat 8](http://tomcat.apache.org/download-80.cgi)，解压缩。
+聪明的读者肯定已经想到了，整个秒杀过程是异步的。
 
-修改``${TOMCAT_HOME}/conf/server.xml``文件，替换成以下内容：
+### 下单流程
 
-```xml
-<Server port="8005" shutdown="SHUTDOWN">
-  <Listener className="org.apache.catalina.startup.VersionLoggerListener" />
-  <Listener className="org.apache.catalina.core.AprLifecycleListener" SSLEngine="on" />
-  <Listener className="org.apache.catalina.core.JreMemoryLeakPreventionListener" />
-  <Listener className="org.apache.catalina.mbeans.GlobalResourcesLifecycleListener" />
-  <Listener className="org.apache.catalina.core.ThreadLocalLeakPreventionListener" />
+![下单流程](design/UML/流程图-下单.png)
 
-  <Service name="Catalina">
+### 查询下单结果的流程
 
-    <Connector port="8080" protocol="org.apache.coyote.http11.Http11Nio2Protocol"
-      URIEncoding="UTF-8"
-      enableLookups="false"
+![查询下单结果流程](design/UML/流程图-查询下单结果.png)  
 
-      maxThreads="1500"
-      minSpareThreads="1500"
-      processorCache="1500"
 
-      acceptorThreadCount="1"
-      acceptCount="1000"
-      maxConnections="20000"
+## How-tos
 
-      connectionTimeout="15000"  
-      socket.directBuffer="true"
-      socket.bufferPool="-1"
-      socket.processorCache="-1"    
-    />
-
-    <Engine name="Catalina" defaultHost="localhost">
-      <Host name="localhost"  appBase="webapps" unpackWARs="true" autoDeploy="true">
-      </Host>
-    </Engine>
-  </Service>
-
-</Server>
-```
-
-上面关于各个参数的说明见[这里](http://tomcat.apache.org/tomcat-8.5-doc/config/http.html)
-
-新建``${TOMCAT_HOME}/bin/setenv.sh``文件，内容如下：
-
-```bash
-CATALINA_OPTS="-server -Xmx3G -Xms3G -XX:MaxDirectMemorySize=256m"
-```
-
-## 启动
-
-### Apache Artemis
-
-```bash
-miaosha-broker/bin/artemis-service start
-```
-
-### 秒杀Webapp
-
-新建文件``application-jms-client.properties``，内容见这里[application-jms-client.properties](jms-client/src/main/resources/application-jms-client.properties)
-
-将``artemis-disruptor-miaosha-web-1.0.0-SNAPSHOT.war``放到``${TOMCAT_HOME}/webapps``下，并改名为``miaosha.war``
-
-到``${TOMCAT_HOME}/conf/Catalina/localhost``下新建``miaosha.xml``文件，内容如下：
-
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<Context>
-  <Environment name="spring.config.location" value="application-webapp.properties的绝对路径" type="java.lang.String"/>
-  <Resources cachingAllowed="true" cacheMaxSize="100000" />
-</Context>
-```
-
-PS. webapp可以有多个节点，利用haproxy、nginx做反向代理。
-
-### 秒杀后端
-
-新建一个文件``application-jms-server.properties``，内容见这里[application-jms-server.properties](jms-server/src/main/resources/application-jms-server.properties)。需要注意的是，要修改``spring.datasource.url``参数到你自己的数据库上。
-
-运行以下命令启动选课后端程序
-
-```bash
-java -jar -server -Xms2g -Xmx2g \
-  -Dspring.config.location=application-jms-server.properties的路径 \
-  artemis-disruptor-miaosha-backend-1.0.0-SNAPSHOT.jar
-```
-
-PS. 秒杀后端只能部署有一个节点，因为商品的库存数据都在内存，而这些数据是不跨jvm共享的。
-
-## 测试
-
-下单：
-
-```bash
-curl -X POST 'http://localhost:8080/miaosha/order' --data 'itemId=1'
-```
-
-返回结果：
-
-```bash
-{"id":"325e5ef0-322a-11e7-a867-b20ed8864300","itemId":1,"userId":"HFxUS"}
-```
-
-上面返回的JSON的ID就是下单请求ID，然后利用这个请求ID获得下单结果：
-
-```bash
-curl -X GET 'http://localhost:8080/miaosha/order-result?requestId=325e5ef0-322a-11e7-a867-b20ed8864300'
-```
-
-返回结果：
-
-```bash
-{"id":"dc6abcb6-3229-11e7-9067-b20ed8864300","requestId":"325e5ef0-322a-11e7-a867-b20ed8864300","errorMessage":null,"success":true}
-```
-
-## benchmark
-
-先执行以下sql添加商品数据
-
-```sql
-insert into ITEM(ID, NAME, AMOUNT) VALUES (1, '商品01', 300000);
-```
-
-到[这里](http://jmeter.apache.org/download_jmeter.cgi)下载Jmeter 3.x版本。
-
-用jmeter打开项目``jmeter/benchmark.jmx``文件。
-
-1. 修改**Thread Group**里的用户数到你期望的数值
-2. 修改**Aggregate Graph**里的结果保存路径
-3. 修改**View Results Tree**里的结果保存路径
-4. 修改**Response Time Graph**里的结果保存路径
-4. 修改**Graph Results**里的结果保存路径
-
-关闭jmeter，利用以下命令使用jmeter的Non-GUI模式跑测试：
-
-```bash
-JVM_ARGS="-Xms1g -Xmx1g" ${JMETER_HOME}/bin/jmeter.sh -n -t jmeter/benchmark.jmx的绝对路径
-```
-
-测试完毕后，用jmeter打开``jmeter/benchmark.jmx``文件，分别到
-
-* **Aggregate Graph**
-* **View Results Tree**
-* **Response Time Graph**
-* **Graph Results**
-
-里加载结果文件，查看结果
+* [如何准备环境](Environment.md)
+* [如何构建](Build.md)
+* [如何启动](Run.md)
+* [如何访问](Test.md)
+* [如何Benchmark](Benchmark.md)
