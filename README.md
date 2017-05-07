@@ -37,21 +37,21 @@
 
 一共Benchmark了两次，因为在测试过程中发现Tomcat在warm-up之后性能会更好，两次都是30W请求，测试Jmeter脚本见[如何Benchmark](Benchmark.md)。
 
-第一次结果：
+**第一次结果**
 
-* Tomcat的表现：300000 in 00:01:57 = 2569.8/s Avg:   108 Min:     0 Max: 41102 Err:   164 (0.05%)
-* 数据库表现：299836条订单 ／ 121秒 = 2477条/s
+* Tomcat：300000 in 00:01:57 = 2569.8/s Avg:   108 Min:     0 Max: 41102 Err:   164 (0.05%)
+* 数据库：299836条订单 ／ 121秒 = 2477条/s
 
 PS. 数据库表现从后端程序的日志中分析的。
 
-第二次结果：
+**第二次结果**
 
 不重启Tomcat和Artemis，把数据库的数据恢复后，重启了后端程序
 
-* Tomcat的表现：300000 in 00:00:35 = 8527.8/s Avg:    20 Min:     0 Max:  4515 Err:     2 (0.00%)
-* 数据库表现：246873 / 46 秒 = 5366条 / s
+* Tomcat：300000 in 00:00:35 = 8527.8/s Avg:    20 Min:     0 Max:  4515 Err:     2 (0.00%)
+* 数据库：246873 / 46 秒 = 5366条 / s
 
-数据库记录数偏少是因为Artemis缓存区满了，把消息丢掉了
+数据库记录数偏少是因为Artemis队列满了，把消息丢掉了。
 
 ```
 11:47:14,789 WARN  [org.apache.activemq.artemis.core.server] AMQ222039: Messages sent to address 'jms.queue.MiaoSha.request' are being dropped; size is currently: 104,858,376 bytes; max-size-byt
@@ -70,7 +70,7 @@ PS. 数据库表现从后端程序的日志中分析的。
 
 1. 重用JMS Connection、Session、MessageProducer、MessageConsumer，而不是每次都创建这些对象（Spring的JmsTemplate就是这么干的）
 1. 将JMS Session设定为transacted=false, AUTO_ACKNOWLEDGE
-1. 发送JMS消息是，DeliveryMode=NON_PERSISTENT
+1. 发送JMS消息时DeliveryMode=NON_PERSISTENT
 1. 关闭Artemis的重发、消息持久机制
 
 和JDBC相关的优化点
