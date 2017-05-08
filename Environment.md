@@ -8,8 +8,7 @@
 
 如果有条件，可以使用Oracle 12c版本，如果没有则可以使用Oracle 11g。
 
-本人用的是[Oracle EX 11g的Docker image](https://hub.docker.com/r/wnameless/oracle-xe-11g/)，下面介绍Docker的流程
-
+本人用的是[Oracle EX 11g的Docker image](https://hub.docker.com/r/wnameless/oracle-xe-11g/)，下面介绍Docker的流程：
 
 ```bash
 # docker下载oracle-xe-11g的image，并启动
@@ -47,9 +46,9 @@ CREATE TABLE ITEM_ORDER (
 CREATE SEQUENCE SEQ_ITEM_ORDER CACHE 1000;
 ```
 
-## 配置Artemis
+## 配置ActiveMQ Artemis
 
-下载[Apache Artemis 1.5.4](https://www.apache.org/dyn/closer.cgi?filename=activemq/activemq-artemis/1.5.4/apache-artemis-1.5.4-bin.tar.gz&action=download)，解压。
+下载[ActiveMQ Artemis 1.5.4](https://www.apache.org/dyn/closer.cgi?filename=activemq/activemq-artemis/1.5.4/apache-artemis-1.5.4-bin.tar.gz&action=download)，解压。
 
 到任意目录执行以下命令：
 
@@ -103,7 +102,7 @@ ${ARTEMIS_HOME}/bin/artemis create \
 JAVA_ARGS="-XX:+UseParallelGC -XX:+AggressiveOpts -XX:+UseFastAccessorMethods -Xms2g -Xmx2g"
 ```
 
-## 配置tomcat
+## 配置Tomcat
 
 下载[Apache Tomcat 8](http://tomcat.apache.org/download-80.cgi)，解压缩。
 

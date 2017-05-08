@@ -1,12 +1,12 @@
 # 启动
 
-## Apache Artemis
+## ActiveMQ Artemis
 
 ```bash
 miaosha-broker/bin/artemis-service start
 ```
 
-## 秒杀Webapp
+## webapp
 
 新建文件``application-jms-client.properties``，内容见这里[application-jms-client.properties](jms-client/src/main/resources/application-jms-client.properties)
 
@@ -24,7 +24,7 @@ miaosha-broker/bin/artemis-service start
 
 PS. webapp可以有多个节点，利用haproxy、nginx做反向代理。
 
-## 秒杀后端
+## backend
 
 新建一个文件``application-jms-server.properties``，内容见这里[application-jms-server.properties](jms-server/src/main/resources/application-jms-server.properties)。需要注意的是，要修改``spring.datasource.url``参数到你自己的数据库上。
 
@@ -36,7 +36,7 @@ java -jar -server -Xms2g -Xmx2g \
   artemis-disruptor-miaosha-backend-1.0.0-SNAPSHOT.jar
 ```
 
-PS. 秒杀后端只能部署有一个节点，因为商品的库存数据都在内存，而这些数据是不跨jvm共享的。
+PS. 秒杀后端只能部署有一个节点，因为商品的库存数据都在内存，而这些数据是不跨JVM共享的。
 
 ## 测试
 
