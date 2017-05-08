@@ -160,6 +160,6 @@ PS. 数据库表现从后端程序的日志中分析的。
 
  [Artemis]: http://activemq.apache.org/artemis/
  [Disruptor]: https://lmax-exchange.github.io/disruptor/
- [Item]: jms/server/me/chanjar/jms/server/memdb/Item.java
+ [Item]: jms-server/src/main/java/me/chanjar/jms/server/memdb/Item.java
  [jol-cli]: http://openjdk.java.net/projects/code-tools/jol/
  [jol-cli-dl]: http://central.maven.org/maven2/org/openjdk/jol/jol-cli/0.8/jol-cli-0.8-full.jar
