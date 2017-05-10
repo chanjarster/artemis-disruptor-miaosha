@@ -1,18 +1,64 @@
 # artemis-disruptor-miaosha
 
-基于[ActiveMQ Artemis][Artemis]和[Disruptor][Disruptor]的秒杀项目demo。
+没有redis也能够支撑["小米在印度把亚马逊搞挂了"事件](http://bbs.xiaomi.cn/t-13417592)的秒杀解决方案。
 
-本项目的灵感来自于[秒杀、抢购解决方案，设计目标：性能支撑"小米印度抢购搞挂亚马逊事件”](http://git.oschina.net/1028125449/miaosha)，期望能够得到比其更好的性能。
+> 小米在印度打破了多项记录：
+1. 4分钟内卖出了超过250,000台。 ---OPS:1042次抢购/S
+1. 成为最快的手机抢购活动。
+1. 抢购前我们收到了100万“到货提醒”。
+1. 亚马逊每分钟收到超过500万个点击。
+1. 亚马逊在这个期间每秒收到1500个订单（这是印度电商公司所有销售中最高的）。 ---OPS：1500次下单请求/S
 
-在看了很多基于redis+消息队列的秒杀架构之后，决定自己写一点特别的秒杀架构。
+## 性能表现
+
+先说一下性能表现吧，因为大家对这个比较感兴趣。
+
+硬件环境(Tomcat、Artemis、Jmeter、Oracle，backend都在这台电脑上)：
+
+* MacBook Pro (Retina, 15-inch, Mid 2014)
+* 2.2 GHz Intel Core i7
+* 16 GB 1600 MHz DDR3
+* 512G SSD
+
+软件环境：
+
+* java version "1.8.0_131"
+* Artemis 1.5.4
+* Oracle XE 11g (Docker)
+* Tomcat 8.5.14 (1个)
+
+相关配置见[如何准备环境](Environment.md)
+
+测试Jmeter脚本见[如何Benchmark](Benchmark.md)：
+
+* 300线程，循环1000次，共30w请求
+
+一共Benchmark了两次，因为JIT的关系，第二次的性能表现更好。
+
+**第一次结果**
+
+* QPS：300000 in 00:01:57 = 2569.8/s Avg:   108 Min:     0 Max: 41102 Err:   164 (0.05%)
+* TPS：299836订单 ／ 121秒 = 2477条/s
+
+PS. 数据库表现从后端程序的日志中分析的。
+
+**第二次结果**
+
+不重启Tomcat和Artemis，把数据库的数据恢复后，重启了后端程序
+
+* QPS：300000 in 00:00:35 = 8527.8/s Avg:    20 Min:     0 Max:  4515 Err:     2 (0.00%)
+* TPS：246873订单 / 46 秒 = 5366条 / s
+
+数据库记录数偏少是因为Artemis队列满了，把消息丢掉了。
+
 
 ## 架构说明
 
 从部署拓扑上看，架构分为4个部分：
 
-1. 运行在Tomcat中的webapp(可集群部署)
-2. ActiveMQ Artemis消息队列
-3. backend(单个部署)
+1. webapp，可集群部署，运行在Tomcat中
+2. [ActiveMQ Artemis][Artemis]，负责webapp和backend之间的通信
+3. backend，只能单个部署，独立运行，内部使用[Disruptor][Disruptor]
 4. Oracle数据库
 
 ### ActiveMQ Artemis
@@ -65,47 +111,6 @@ Space losses: 4 bytes internal + 0 bytes external = 4 bytes total
 
 假设你有100W商品需要秒杀，那么其占用内存 = 1,000,000 * (24b + 4b + 24b) = 52,000,000b = 49m。仅仅只占49m。
 
-## 性能表现
-
-先说一下性能表现吧，因为大家对这个比较感兴趣。
-
-硬件环境(Tomcat、Artemis、Jmeter、Oracle，backend都在这台电脑上)：
-
-* MacBook Pro (Retina, 15-inch, Mid 2014)
-* 2.2 GHz Intel Core i7
-* 16 GB 1600 MHz DDR3
-* 512G SSD
-
-软件环境：
-
-* java version "1.8.0_131"
-* Artemis 1.5.4
-* Oracle XE 11g (Docker)
-* Tomcat 8.5.14 (1个)
-
-相关配置见[如何准备环境](Environment.md)
-
-一共Benchmark了两次，因为在测试过程中发现Tomcat在warm-up之后性能会更好，两次都是30W请求，测试Jmeter脚本见[如何Benchmark](Benchmark.md)。
-
-**第一次结果**
-
-* Tomcat：300000 in 00:01:57 = 2569.8/s Avg:   108 Min:     0 Max: 41102 Err:   164 (0.05%)
-* 数据库：299836条订单 ／ 121秒 = 2477条/s
-
-PS. 数据库表现从后端程序的日志中分析的。
-
-**第二次结果**
-
-不重启Tomcat和Artemis，把数据库的数据恢复后，重启了后端程序
-
-* Tomcat：300000 in 00:00:35 = 8527.8/s Avg:    20 Min:     0 Max:  4515 Err:     2 (0.00%)
-* 数据库：246873 / 46 秒 = 5366条 / s
-
-数据库记录数偏少是因为Artemis队列满了，把消息丢掉了。
-
-```
-11:47:14,789 WARN  [org.apache.activemq.artemis.core.server] AMQ222039: Messages sent to address 'jms.queue.MiaoSha.request' are being dropped; size is currently: 104,858,376 bytes; max-size-byt
-```
 
 ## 优化项
 
