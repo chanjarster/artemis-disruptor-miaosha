@@ -122,12 +122,12 @@ JAVA_ARGS="-XX:+UseParallelGC -XX:+AggressiveOpts -XX:+UseFastAccessorMethods -X
       URIEncoding="UTF-8"
       enableLookups="false"
 
-      maxThreads="2000"
-      minSpareThreads="2000"
-      processorCache="6000"
+      maxThreads="500"
+      minSpareThreads="500"
+      processorCache="500"
       
       acceptCount="5000"
-      maxConnections="20000"
+      maxConnections="10000"
 
       connectionTimeout="15000"  
     />
