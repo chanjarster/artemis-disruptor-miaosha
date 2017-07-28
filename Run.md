@@ -17,7 +17,7 @@ miaosha-broker/bin/artemis-service start
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <Context>
-  <Environment name="spring.config.location" value="application-webapp.properties的绝对路径" type="java.lang.String"/>
+  <Environment name="spring.config.location" value="application-jms-client.properties的绝对路径" type="java.lang.String"/>
   <Resources cachingAllowed="true" cacheMaxSize="100000" />
 </Context>
 ```
