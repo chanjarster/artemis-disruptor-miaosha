@@ -8,6 +8,7 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
  */
 public class ItemAmountUpdateCommand extends Command {
 
+  private static final long serialVersionUID = 7896607558242859910L;
   private final Long itemId;
 
   private final int amount;

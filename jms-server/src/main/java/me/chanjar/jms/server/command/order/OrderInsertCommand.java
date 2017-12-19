@@ -7,6 +7,7 @@ import me.chanjar.jms.server.command.infras.Command;
  */
 public class OrderInsertCommand extends Command {
 
+  private static final long serialVersionUID = -1844388054958673686L;
   private final Long itemId;
 
   private final String userId;

@@ -7,6 +7,7 @@ import me.chanjar.jms.base.msg.MessageDto;
  */
 public class ResponseDto extends MessageDto {
 
+  private static final long serialVersionUID = -4690648814874030736L;
   /**
    * 关联的RequestDto的id
    */

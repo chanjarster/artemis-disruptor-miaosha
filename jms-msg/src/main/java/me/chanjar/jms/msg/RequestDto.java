@@ -8,6 +8,7 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
  */
 public class RequestDto extends MessageDto {
 
+  private static final long serialVersionUID = 5515305970509119810L;
   /**
    * 商品ID
    */

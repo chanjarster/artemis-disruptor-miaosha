@@ -106,6 +106,8 @@ public class ConnectionLifeCycleContainer implements SmartLifecycle {
   }
 
   public static class JmsConnectionCloseException extends RuntimeException {
+    private static final long serialVersionUID = -5707901053880272357L;
+
     public JmsConnectionCloseException(Throwable cause) {
       super(cause);
     }
