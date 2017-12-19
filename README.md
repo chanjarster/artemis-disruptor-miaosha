@@ -131,7 +131,7 @@ Space losses: 4 bytes internal + 0 bytes external = 4 bytes total
 和JDBC相关的优化点
 
 1. 使用JDBC Batch Update，减少和数据库网络IO的次数
-1. 优化更新商品库存的DB操作，将多个更新商品库存的请求合并成一条update，而不是多个update
+1. 优化更新商品库存的DB操作，在高并发情况下，将针对同一个商品的更新库存操作合并成一条update，而不是多个update（借助于Disruptor）
 
 和Tomcat相关的优化点
 
@@ -161,6 +161,7 @@ Space losses: 4 bytes internal + 0 bytes external = 4 bytes total
 * [如何构建](Build.md)
 * [如何启动](Run.md)
 * [如何Benchmark](Benchmark.md)
+* [关于崩溃恢复方案](Recover_Solution.md)
 
 
  [Artemis]: http://activemq.apache.org/artemis/
