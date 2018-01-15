@@ -5,12 +5,12 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>1.5.3.RELEASE</version>
+    <version>1.5.9.RELEASE</version>
   </parent>
 
   <groupId>me.chanjar</groupId>
   <artifactId>artemis-disruptor-miaosha-web</artifactId>
-  <version>1.0.0-SNAPSHOT</version>
+  <version>1.1.0-SNAPSHOT</version>
   <packaging>war</packaging>
 
   <properties>
