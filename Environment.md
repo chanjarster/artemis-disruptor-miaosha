@@ -48,7 +48,7 @@ CREATE SEQUENCE SEQ_ITEM_ORDER CACHE 1000;
 
 ## 配置ActiveMQ Artemis
 
-下载[ActiveMQ Artemis 1.5.4](https://www.apache.org/dyn/closer.cgi?filename=activemq/activemq-artemis/1.5.4/apache-artemis-1.5.4-bin.tar.gz&action=download)，解压。
+下载[ActiveMQ Artemis 1.5.5](http://activemq.apache.org/artemis/download.html)，解压。
 
 到任意目录执行以下命令：
 

@@ -10,7 +10,7 @@ miaosha-broker/bin/artemis-service start
 
 新建文件``application-jms-client.properties``，内容见这里[application-jms-client.properties](jms-client/src/main/resources/application-jms-client.properties)
 
-将``artemis-disruptor-miaosha-web-1.0.0-SNAPSHOT.war``放到``${TOMCAT_HOME}/webapps``下，并改名为``miaosha.war``
+将``artemis-disruptor-miaosha-web-1.1.0-SNAPSHOT.war``放到``${TOMCAT_HOME}/webapps``下，并改名为``miaosha.war``
 
 到``${TOMCAT_HOME}/conf/Catalina/localhost``下新建``miaosha.xml``文件，内容如下：
 
@@ -33,7 +33,7 @@ PS. webapp可以有多个节点，利用haproxy、nginx做反向代理。
 ```bash
 java -jar -server -Xms2g -Xmx2g \
   -Dspring.config.location=application-jms-server.properties的路径 \
-  artemis-disruptor-miaosha-backend-1.0.0-SNAPSHOT.jar
+  artemis-disruptor-miaosha-backend-1.1.0-SNAPSHOT.jar
 ```
 
 PS. 秒杀后端只能部署有一个节点，因为商品的库存数据都在内存，而这些数据是不跨JVM共享的。
